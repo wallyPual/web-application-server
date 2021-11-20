@@ -4,7 +4,6 @@ import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 
 import org.slf4j.Logger;
@@ -12,12 +11,10 @@ import org.slf4j.LoggerFactory;
 import util.RequestUtils;
 
 public class RequestHandler extends Thread {
-    String absolutePath = new File("").getAbsolutePath();
-    ArrayList<String> reqURL = new ArrayList<>();
+    private Socket connection;
 
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
-
-    private Socket connection;
+    private static final String absolutePath = new File("").getAbsolutePath();
 
     public RequestHandler(Socket connectionSocket) {
         this.connection = connectionSocket;
@@ -32,6 +29,7 @@ public class RequestHandler extends Thread {
             BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
 
             String line = br.readLine();
+            ArrayList<String> reqURL = new ArrayList<>();
 
             if (line == null) return;
 
@@ -44,8 +42,8 @@ public class RequestHandler extends Thread {
 
             Iterator<String> reqIter = reqURL.iterator();
 
-            while(reqIter.hasNext()) {
-                if (reqIter.next().equals("/index.html")) {
+            while (reqIter.hasNext()) {
+                if ("/index.html".equals(reqIter.next())) {
                     byte[] body = Files.readAllBytes(new File(absolutePath + "/webapp/index.html").toPath());
                     response200Header(dos, body.length);
                     responseBody(dos, body);
