@@ -9,7 +9,7 @@ import java.util.Iterator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import util.HttpRequestUtils;
+import util.RequestUtils;
 
 public class RequestHandler extends Thread {
     String absolutePath = new File("").getAbsolutePath();
@@ -37,7 +37,7 @@ public class RequestHandler extends Thread {
 
             while (!line.equals("")) {
                 if (line.indexOf("index.html") != -1) {
-                    reqURL.add(HttpRequestUtils.getReqURL(line));
+                    reqURL.add(RequestUtils.getReqURL(line));
                 }
                 line = br.readLine();
             }
