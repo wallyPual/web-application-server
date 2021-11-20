@@ -2,11 +2,19 @@ package webserver;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import util.HttpRequestUtils;
 
 public class RequestHandler extends Thread {
+    String absolutePath = new File("").getAbsolutePath();
+    ArrayList<String> reqURL = new ArrayList<>();
+
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
 
     private Socket connection;
@@ -20,26 +28,29 @@ public class RequestHandler extends Thread {
                 connection.getPort());
 
         try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
+            DataOutputStream dos = new DataOutputStream(out);
             BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
 
-            String line = "";
-            String ReqURL = "";
+            String line = br.readLine();
 
-            for(int i=1; (line = br.readLine()) != null; i++) {
-                System.out.println(line);
+            if (line == null) return;
 
-                if (i == 1) {
-                    String tokens[] = line.split(" ");
-                    ReqURL = tokens[1];
+            while (!line.equals("")) {
+                if (line.indexOf("index.html") != -1) {
+                    reqURL.add(HttpRequestUtils.getReqURL(line));
                 }
+                line = br.readLine();
             }
 
+            Iterator<String> reqIter = reqURL.iterator();
 
-            // TODO 사용자 요청에 대한 처리는 이 곳에 구현하면 된다.
-            DataOutputStream dos = new DataOutputStream(out);
-            byte[] body = "Hello World".getBytes();
-            response200Header(dos, body.length);
-            responseBody(dos, body);
+            while(reqIter.hasNext()) {
+                if (reqIter.next().equals("/index.html")) {
+                    byte[] body = Files.readAllBytes(new File(absolutePath + "/webapp/index.html").toPath());
+                    response200Header(dos, body.length);
+                    responseBody(dos, body);
+                }
+            }
         } catch (IOException e) {
             log.error(e.getMessage());
         }

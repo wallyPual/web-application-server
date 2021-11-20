@@ -105,7 +105,7 @@ public class HttpRequestUtils {
         }
     }
 
-    static String getReqURL(String req) {
+    public static String getReqURL(String req) {
         return req.split(" ")[1];
     }
 }
