@@ -2,6 +2,7 @@ package webserver;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -12,9 +13,10 @@ import util.RequestUtils;
 
 public class RequestHandler extends Thread {
     private Socket connection;
+    private byte[] body;
 
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
-    private static final String absolutePath = new File("").getAbsolutePath();
+    private static final String absolutePath = (new File("").getAbsolutePath()) + "/webapp";
 
     public RequestHandler(Socket connectionSocket) {
         this.connection = connectionSocket;
@@ -29,30 +31,39 @@ public class RequestHandler extends Thread {
             BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
 
             String line = br.readLine();
-            ArrayList<String> requestURL = new ArrayList<>();
+            String requestURL = "/";
 
             if (line == null) return;
 
             while (!line.equals("")) {
                 if (line.contains("GET")) {
-                    requestURL.add(RequestUtils.getReqURL(line));
+                    System.out.println(line);
+                    requestURL = RequestUtils.getReqURL(line);
                 }
                 line = br.readLine();
             }
 
-            Iterator<String> reqIter = requestURL.iterator();
-
-            while (reqIter.hasNext()) {
-                String nextIter = reqIter.next();
-                if ("/index.html".equals(nextIter) || "/".equals(nextIter)) {
-                    byte[] body = Files.readAllBytes(new File(absolutePath + "/webapp/index.html").toPath());
-                    response200Header(dos, body.length);
-                    responseBody(dos, body);
-                }
+            switch (requestURL) {
+                case "/":
+                case "/index.html":
+                    setResBody("/index.html");
+                    break;
+                case "/user/form.html":
+                    setResBody(requestURL);
+                    break;
+                default:
+                    body = "not found".getBytes(StandardCharsets.UTF_8);
             }
+
+            response200Header(dos, body.length);
+            responseBody(dos, body);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
+    }
+
+    private void setResBody(String path) throws IOException {
+        body = Files.readAllBytes(new File(absolutePath + path).toPath());
     }
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
