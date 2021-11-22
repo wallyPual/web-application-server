@@ -6,14 +6,19 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
+import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import util.HttpRequestUtils;
 import util.RequestUtils;
 
 public class RequestHandler extends Thread {
     private Socket connection;
     private byte[] body;
+    private User newUser;
 
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
     private static final String absolutePath = (new File("").getAbsolutePath()) + "/webapp";
@@ -37,7 +42,6 @@ public class RequestHandler extends Thread {
 
             while (!line.equals("")) {
                 if (line.contains("GET")) {
-                    System.out.println(line);
                     requestURL = RequestUtils.getReqURL(line);
                 }
                 line = br.readLine();
@@ -52,6 +56,12 @@ public class RequestHandler extends Thread {
                     setResBody(requestURL);
                     break;
                 default:
+                    if (requestURL.contains("/user/create")) {
+                        Map<String, String> parsed = HttpRequestUtils.parseQueryString(requestURL.split("\\?")[1]);
+                        newUser = new User(parsed.get("userId"), parsed.get("password"), parsed.get("name"), parsed.get("email"));
+                        System.out.println(newUser.getUserId());
+                        return;
+                    }
                     body = "not found".getBytes(StandardCharsets.UTF_8);
             }
 
