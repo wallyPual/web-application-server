@@ -29,21 +29,22 @@ public class RequestHandler extends Thread {
             BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
 
             String line = br.readLine();
-            ArrayList<String> reqURL = new ArrayList<>();
+            ArrayList<String> requestURL = new ArrayList<>();
 
             if (line == null) return;
 
             while (!line.equals("")) {
-                if (line.indexOf("index.html") != -1) {
-                    reqURL.add(RequestUtils.getReqURL(line));
+                if (line.contains("GET")) {
+                    requestURL.add(RequestUtils.getReqURL(line));
                 }
                 line = br.readLine();
             }
 
-            Iterator<String> reqIter = reqURL.iterator();
+            Iterator<String> reqIter = requestURL.iterator();
 
             while (reqIter.hasNext()) {
-                if ("/index.html".equals(reqIter.next())) {
+                String nextIter = reqIter.next();
+                if ("/index.html".equals(nextIter) || "/".equals(nextIter)) {
                     byte[] body = Files.readAllBytes(new File(absolutePath + "/webapp/index.html").toPath());
                     response200Header(dos, body.length);
                     responseBody(dos, body);
