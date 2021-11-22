@@ -57,7 +57,7 @@ public class RequestHandler extends Thread {
                     break;
                 default:
                     if (requestURL.contains("/user/create")) {
-                        Map<String, String> parsed = HttpRequestUtils.parseQueryString(requestURL.split("\\?")[1]);
+                        Map<String, String> parsed = RequestUtils.queryToMap(requestURL);
                         newUser = new User(parsed.get("userId"), parsed.get("password"), parsed.get("name"), parsed.get("email"));
                         System.out.println(newUser.getUserId());
                         return;
