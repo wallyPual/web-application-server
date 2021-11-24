@@ -43,8 +43,8 @@ public class RequestHandler extends Thread {
 
             String[] firstLine = line.split(" ");
 
-            this.method = firstLine[0];
-            this.url = firstLine[1];
+            method = firstLine[0];
+            url = firstLine[1];
 
             while (!(line = br.readLine()).equals("")) {
                 String[] tokens = line.split(": ");
@@ -53,17 +53,8 @@ public class RequestHandler extends Thread {
             }
 
             if (method.equals("GET")) {
-                switch (url) {
-                    case "/":
-                    case "/index.html":
-                        setResBody("/index.html");
-                        break;
-                    case "/user/form.html":
-                        setResBody(url);
-                        break;
-                    default:
-                        body = "not found".getBytes(StandardCharsets.UTF_8);
-                }
+                setResBody(url);
+
                 response200Header(dos, body.length);
                 responseBody(dos, body);
             }
@@ -71,7 +62,8 @@ public class RequestHandler extends Thread {
                 switch (url) {
                     case "/user/create":
                         Map<String, String> parsed = HttpRequestUtils.parseQueryString(IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length"))));
-                        this.newUser = new User(parsed.get("userId"), parsed.get("password"), parsed.get("name"), parsed.get("email"));
+                        newUser = new User(parsed.get("userId"), parsed.get("password"), parsed.get("name"), parsed.get("email"));
+                        System.out.println(newUser);
                         break;
                 }
             }
