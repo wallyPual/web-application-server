@@ -4,21 +4,23 @@ import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.HttpRequestUtils;
+import util.IOUtils;
 import util.RequestUtils;
 
 public class RequestHandler extends Thread {
     private Socket connection;
     private byte[] body;
     private User newUser;
+    private String method;
+    private String url;
+    private Map<String, String> headers = new HashMap<>();
+
 
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
     private static final String absolutePath = (new File("").getAbsolutePath()) + "/webapp";
@@ -35,47 +37,46 @@ public class RequestHandler extends Thread {
             DataOutputStream dos = new DataOutputStream(out);
             BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
 
-            String line;
-            String getURL = "";
-            String postURL = "";
+            String line = br.readLine();
 
-            while ((line = br.readLine()) != null) {
-                if (line.contains("GET")) {
-                    getURL = RequestUtils.getReqURL(line);
+            if (line == null) return;
+
+            String[] firstLine = line.split(" ");
+
+            this.method = firstLine[0];
+            this.url = firstLine[1];
+
+            while (!(line = br.readLine()).equals("")) {
+                String[] tokens = line.split(": ");
+
+                if (tokens.length == 2) headers.put(tokens[0], tokens[1]);
+            }
+
+            if (method.equals("GET")) {
+                switch (url) {
+                    case "/":
+                    case "/index.html":
+                        setResBody("/index.html");
+                        break;
+                    case "/user/form.html":
+                        setResBody(url);
+                        break;
+                    default:
+                        body = "not found".getBytes(StandardCharsets.UTF_8);
                 }
-                if (line.contains("POST")) {
-                    postURL = RequestUtils.getReqURL(line);
+                response200Header(dos, body.length);
+                responseBody(dos, body);
+            }
+            if (method.equals("POST")) {
+                switch (url) {
+                    case "/user/create":
+                        Map<String, String> parsed = HttpRequestUtils.parseQueryString(IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length"))));
+                        this.newUser = new User(parsed.get("userId"), parsed.get("password"), parsed.get("name"), parsed.get("email"));
+                        break;
                 }
-
-                System.out.println(line);
             }
-
-            switch (getURL) {
-                case "/":
-                case "/index.html":
-                    setResBody("/index.html");
-                    break;
-                case "/user/form.html":
-                    setResBody(getURL);
-                    break;
-                default:
-                    if (getURL.contains("/user/create")) {
-                        Map<String, String> parsed = RequestUtils.queryToMap(getURL);
-                        newUser = new User(parsed.get("userId"), parsed.get("password"), parsed.get("name"), parsed.get("email"));
-                        System.out.println(newUser.getUserId());
-                        return;
-                    }
-                    body = "not found".getBytes(StandardCharsets.UTF_8);
-            }
-
-            switch (postURL) {
-                case "/user/form.html":
-                    return;
-            }
-
-            response200Header(dos, body.length);
-            responseBody(dos, body);
         } catch (IOException e) {
+            System.out.println("에러 난거야??");
             log.error(e.getMessage());
         }
     }
