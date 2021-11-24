@@ -35,34 +35,42 @@ public class RequestHandler extends Thread {
             DataOutputStream dos = new DataOutputStream(out);
             BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
 
-            String line = br.readLine();
-            String requestURL = "/";
+            String line;
+            String getURL = "";
+            String postURL = "";
 
-            if (line == null) return;
-
-            while (!line.equals("")) {
+            while ((line = br.readLine()) != null) {
                 if (line.contains("GET")) {
-                    requestURL = RequestUtils.getReqURL(line);
+                    getURL = RequestUtils.getReqURL(line);
                 }
-                line = br.readLine();
+                if (line.contains("POST")) {
+                    postURL = RequestUtils.getReqURL(line);
+                }
+
+                System.out.println(line);
             }
 
-            switch (requestURL) {
+            switch (getURL) {
                 case "/":
                 case "/index.html":
                     setResBody("/index.html");
                     break;
                 case "/user/form.html":
-                    setResBody(requestURL);
+                    setResBody(getURL);
                     break;
                 default:
-                    if (requestURL.contains("/user/create")) {
-                        Map<String, String> parsed = RequestUtils.queryToMap(requestURL);
+                    if (getURL.contains("/user/create")) {
+                        Map<String, String> parsed = RequestUtils.queryToMap(getURL);
                         newUser = new User(parsed.get("userId"), parsed.get("password"), parsed.get("name"), parsed.get("email"));
                         System.out.println(newUser.getUserId());
                         return;
                     }
                     body = "not found".getBytes(StandardCharsets.UTF_8);
+            }
+
+            switch (postURL) {
+                case "/user/form.html":
+                    return;
             }
 
             response200Header(dos, body.length);

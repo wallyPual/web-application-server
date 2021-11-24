@@ -20,6 +20,6 @@ public class RequestUtilsTest {
         hm.put("password", "luap");
         hm.put("name", "김영주");
         hm.put("email", "yjk@marpple.com");
-        assertEquals(RequestUtils.queryToMap("GET /user/create?userId=paul&password=luap&name=김영주&email=yjk@marpple.com"), hm);
+        assertEquals(RequestUtils.queryToMap("POST /user/create?userId=paul&password=luap&name=김영주&email=yjk@marpple.com"), hm);
     }
 }
