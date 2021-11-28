@@ -5,6 +5,7 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.util.*;
 
+import db.DataBase;
 import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +51,11 @@ public class RequestHandler extends Thread {
             }
 
             if (method.equals("GET")) {
+                if (url.equals("/user/login.html") && headers.get("Cookie").indexOf("logined=true") != -1) {
+                    System.out.println("이미 로그인 된 상태입니다.");
+                    response302Header(dos, "/index.html");
+                    return;
+                }
                 setResBody(url);
                 response200Header(dos, body.length);
                 responseBody(dos, body);
@@ -59,7 +65,21 @@ public class RequestHandler extends Thread {
                     case "/user/create":
                         Map<String, String> parsed = HttpRequestUtils.parseQueryString(IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length"))));
                         newUser = new User(parsed.get("userId"), parsed.get("password"), parsed.get("name"), parsed.get("email"));
+                        DataBase.addUser(newUser);
                         response302Header(dos, "/index.html");
+                        break;
+                    case "/user/login":
+                        Map<String, String> loginInfo = HttpRequestUtils.parseQueryString(IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length"))));
+                        User findDBUser = DataBase.findUserById(loginInfo.get("userId"));
+                        System.out.println("findDBUser: " + findDBUser);
+                        if (findDBUser == null) {
+                            reponseLoginHeader(dos, false);
+                            return;
+                        }
+                        if (findDBUser.getPassword().equals(loginInfo.get("password"))) {
+                            System.out.println("로그인 성공");
+                            reponseLoginHeader(dos, true);
+                        };
                         break;
                 }
             }
@@ -92,6 +112,18 @@ public class RequestHandler extends Thread {
             log.error(e.getMessage());
         }
     };
+
+    private void reponseLoginHeader(DataOutputStream dos, Boolean isLogin) {
+        try {
+            String redirectURL = isLogin ? "/index.html" : "/user/login_failed.html";
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location: " + redirectURL + "\r\n");
+            dos.writeBytes("Set-Cookie: logined=" + isLogin + "\r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
 
     private void responseBody(DataOutputStream dos, byte[] body) {
         try {
