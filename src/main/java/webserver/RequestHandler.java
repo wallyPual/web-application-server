@@ -2,7 +2,6 @@ package webserver;
 
 import java.io.*;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
 
@@ -11,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.HttpRequestUtils;
 import util.IOUtils;
-import util.RequestUtils;
 
 public class RequestHandler extends Thread {
     private Socket connection;
@@ -46,15 +44,13 @@ public class RequestHandler extends Thread {
             method = firstLine[0];
             url = firstLine[1];
 
-            while (!(line = br.readLine()).equals("")) {
+            while (!"".equals((line = br.readLine()))) {
                 String[] tokens = line.split(": ");
-
                 if (tokens.length == 2) headers.put(tokens[0], tokens[1]);
             }
 
             if (method.equals("GET")) {
                 setResBody(url);
-
                 response200Header(dos, body.length);
                 responseBody(dos, body);
             }
@@ -63,12 +59,11 @@ public class RequestHandler extends Thread {
                     case "/user/create":
                         Map<String, String> parsed = HttpRequestUtils.parseQueryString(IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length"))));
                         newUser = new User(parsed.get("userId"), parsed.get("password"), parsed.get("name"), parsed.get("email"));
-                        System.out.println(newUser);
+                        response302Header(dos, "/index.html");
                         break;
                 }
             }
         } catch (IOException e) {
-            System.out.println("에러 난거야??");
             log.error(e.getMessage());
         }
     }
@@ -87,6 +82,16 @@ public class RequestHandler extends Thread {
             log.error(e.getMessage());
         }
     }
+
+    private void response302Header(DataOutputStream dos, String url) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location: " + url + "\r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    };
 
     private void responseBody(DataOutputStream dos, byte[] body) {
         try {

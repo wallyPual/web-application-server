@@ -15,4 +15,5 @@ ARG PROJECT_DIRNAME
 RUN ["mkdir", "-p", "${PROJECT_DIRNAME}"]
 WORKDIR ${PROJECT_DIRNAME}
 COPY --from=builder "${PROJECT_DIRNAME}/target" ${PROJECT_DIRNAME}
+COPY ./webapp ./webapp
 CMD ["java", "-jar", "web-application-server.jar"]
