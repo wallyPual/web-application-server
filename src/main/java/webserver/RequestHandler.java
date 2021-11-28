@@ -51,14 +51,23 @@ public class RequestHandler extends Thread {
             }
 
             if (method.equals("GET")) {
-                if (url.equals("/user/login.html") && headers.get("Cookie").indexOf("logined=true") != -1) {
-                    System.out.println("이미 로그인 된 상태입니다.");
-                    response302Header(dos, "/index.html");
-                    return;
+                switch (url) {
+                    case "/user/login.html":
+                        Boolean logined = false;
+                        if (headers.get("Cookie") != null) {
+                            logined = Boolean.parseBoolean(util.HttpRequestUtils.parseCookies(headers.get("Cookie")).get("logined"));
+                        }
+
+                        if (logined) {
+                            System.out.println("이미 로그인 된 상태입니다.");
+                            response302Header(dos, "/index.html");
+                            return;
+                        }
+                    default:
+                        setResBody(url);
+                        response200Header(dos, body.length);
+                        responseBody(dos, body);
                 }
-                setResBody(url);
-                response200Header(dos, body.length);
-                responseBody(dos, body);
             }
             if (method.equals("POST")) {
                 switch (url) {
