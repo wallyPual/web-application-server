@@ -2,6 +2,7 @@ package webserver;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
 
@@ -19,6 +20,8 @@ public class RequestHandler extends Thread {
     private String method;
     private String url;
     private Map<String, String> headers = new HashMap<>();
+    private Boolean logined = false;
+
 
 
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -50,19 +53,40 @@ public class RequestHandler extends Thread {
                 if (tokens.length == 2) headers.put(tokens[0], tokens[1]);
             }
 
+            // 로그인 유무 저장
+            if (headers.get("Cookie") != null) {
+                logined = Boolean.parseBoolean(util.HttpRequestUtils.parseCookies(headers.get("Cookie")).get("logined"));
+            }
+
             if (method.equals("GET")) {
                 switch (url) {
                     case "/user/login.html":
-                        Boolean logined = false;
-                        if (headers.get("Cookie") != null) {
-                            logined = Boolean.parseBoolean(util.HttpRequestUtils.parseCookies(headers.get("Cookie")).get("logined"));
-                        }
-
+                        // 로그인 한 경우 홈으로 보냄
                         if (logined) {
                             System.out.println("이미 로그인 된 상태입니다.");
                             response302Header(dos, "/index.html");
                             return;
                         }
+                        setResBody(url);
+                        response200Header(dos, body.length);
+                        responseBody(dos, body);
+                        break;
+                    case "/user/list":
+                        // 로그인 하지 않은 경우 로그인 페이지로 리다이렉트
+                        if (!logined) response302Header(dos, "/user/login.html");
+                        Iterator users = DataBase.findAll().iterator();
+
+                        StringBuilder sb = new StringBuilder();
+
+                        for (Iterator it = users; it.hasNext(); ) {
+                            User user = (User)it.next();
+                            sb.append("<div>" + user.getUserId() + "</div>");
+                        }
+
+                        byte[] html = sb.toString().getBytes(StandardCharsets.UTF_8);
+                        response200Header(dos, html.length);
+                        responseBody(dos, html);
+                        break;
                     default:
                         setResBody(url);
                         response200Header(dos, body.length);
