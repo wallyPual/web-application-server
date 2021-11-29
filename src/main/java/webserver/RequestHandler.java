@@ -21,6 +21,7 @@ public class RequestHandler extends Thread {
     private String url;
     private Map<String, String> headers = new HashMap<>();
     private Boolean logined = false;
+    private String contentType = "text/html";
 
 
 
@@ -57,6 +58,11 @@ public class RequestHandler extends Thread {
             if (headers.get("Cookie") != null) {
                 logined = Boolean.parseBoolean(util.HttpRequestUtils.parseCookies(headers.get("Cookie")).get("logined"));
             }
+
+            // Content-Type 저장
+            if (headers.get("Accept") != null && headers.get("Accept").startsWith("text/css")) {
+                contentType = "text/css";
+            };
 
             if (method.equals("GET")) {
                 switch (url) {
@@ -128,7 +134,7 @@ public class RequestHandler extends Thread {
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
         try {
             dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
+            dos.writeBytes("Content-Type: " + contentType + ";charset=utf-8\r\n");
             dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
