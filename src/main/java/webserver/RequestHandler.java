@@ -21,7 +21,7 @@ public class RequestHandler extends Thread {
     private String url;
     private Map<String, String> headers = new HashMap<>();
     private Boolean logined = false;
-    private String contentType = "text/html";
+    private String contentType;
 
 
 
@@ -54,15 +54,8 @@ public class RequestHandler extends Thread {
                 if (tokens.length == 2) headers.put(tokens[0], tokens[1]);
             }
 
-            // 로그인 유무 저장
-            if (headers.get("Cookie") != null) {
-                logined = Boolean.parseBoolean(util.HttpRequestUtils.parseCookies(headers.get("Cookie")).get("logined"));
-            }
-
-            // Content-Type 저장
-            if (headers.get("Accept") != null && headers.get("Accept").startsWith("text/css")) {
-                contentType = "text/css";
-            };
+            logined = isLoggedIn();
+            contentType = getContentType();
 
             if (method.equals("GET")) {
                 switch (url) {
@@ -126,6 +119,20 @@ public class RequestHandler extends Thread {
         } catch (IOException e) {
             log.error(e.getMessage());
         }
+    }
+
+    private String getContentType() {
+        if (headers.get("Accept") != null) {
+            return headers.get("Accept");
+        }
+        return "text/html";
+    }
+
+    private Boolean isLoggedIn() {
+        if (headers.get("Cookie") != null) {
+            return Boolean.parseBoolean(util.HttpRequestUtils.parseCookies(headers.get("Cookie")).get("logined"));
+        }
+        return false;
     }
 
     private void setResBody(String path) throws IOException {
