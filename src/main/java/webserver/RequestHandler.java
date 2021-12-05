@@ -69,7 +69,7 @@ public class RequestHandler extends Thread {
                     case "/user/login.html":
                         // 로그인 한 경우 홈으로 보냄
                         if (logined) {
-                            System.out.println("이미 로그인 된 상태입니다.");
+                            log.warn("이미 로그인 된 상태입니다.");
                             response302Header(dos, "/index.html");
                             return;
                         }
@@ -105,18 +105,19 @@ public class RequestHandler extends Thread {
                         Map<String, String> parsed = HttpRequestUtils.parseQueryString(IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length"))));
                         newUser = new User(parsed.get("userId"), parsed.get("password"), parsed.get("name"), parsed.get("email"));
                         DataBase.addUser(newUser);
+                        log.info("회원가입 완료");
                         response302Header(dos, "/index.html");
                         break;
                     case "/user/login":
                         Map<String, String> loginInfo = HttpRequestUtils.parseQueryString(IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length"))));
                         User findDBUser = DataBase.findUserById(loginInfo.get("userId"));
-                        System.out.println("findDBUser: " + findDBUser);
+                        log.debug("findDBUser: {}", findDBUser);
                         if (findDBUser == null) {
                             reponseLoginHeader(dos, false);
                             return;
                         }
                         if (findDBUser.getPassword().equals(loginInfo.get("password"))) {
-                            System.out.println("로그인 성공");
+                            log.info("로그인 성공");
                             reponseLoginHeader(dos, true);
                         };
                         break;
