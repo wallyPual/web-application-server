@@ -105,14 +105,12 @@ public class RequestHandler extends Thread {
                         Map<String, String> loginInfo = HttpRequestUtils.parseQueryString(IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length"))));
                         User findDBUser = DataBase.findUserById(loginInfo.get("userId"));
                         log.debug("findDBUser: {}", findDBUser);
-                        if (findDBUser == null) {
+                        if (findDBUser == null || !findDBUser.getPassword().equals(loginInfo.get("password"))) {
                             reponseLoginHeader(dos, false);
                             return;
                         }
-                        if (findDBUser.getPassword().equals(loginInfo.get("password"))) {
-                            log.info("로그인 성공");
-                            reponseLoginHeader(dos, true);
-                        };
+                        log.info("로그인 성공");
+                        reponseLoginHeader(dos, true);
                         break;
                 }
             }
@@ -122,8 +120,11 @@ public class RequestHandler extends Thread {
     }
 
     private String getContentType() {
-        if (headers.get("Accept") != null) {
-            return headers.get("Accept");
+        if (url.endsWith(".css")) {
+            return "text/css";
+        }
+        if (url.endsWith(".js")) {
+            return "text/javascript";
         }
         return "text/html";
     }
