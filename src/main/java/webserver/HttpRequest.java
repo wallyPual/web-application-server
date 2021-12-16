@@ -6,6 +6,7 @@ import util.IOUtils;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class HttpRequest {
     private String methods;
@@ -18,7 +19,6 @@ public class HttpRequest {
 
         String line = br.readLine();
         if (line == null) return;
-
         setMethodAndPath(line);
         while ((line = br.readLine()) != null && !"".equals(line)) {
             String[] tokens = line.split(": ");
@@ -38,8 +38,7 @@ public class HttpRequest {
             String[] pathToken = this.path.split("\\?");
             this.path = pathToken[0];
             this.parsedQuery = HttpRequestUtils.parseQueryString(pathToken[1]);
-        }
-        if ("POST".equals(this.methods)) {
+        } else if ("POST".equals(this.methods)) {
             this.parsedQuery = HttpRequestUtils.parseQueryString(IOUtils.readData(br, Integer.parseInt(this.headers.get("Content-Length"))));
         }
     }
@@ -52,17 +51,11 @@ public class HttpRequest {
         return this.path;
     }
 
-    public String getHeader(String key) {
-        if (headers.containsKey(key)) {
-            return headers.get(key);
-        }
-        return null;
+    public Optional<String> getHeader(String key) {
+        return Optional.ofNullable(headers.get(key));
     }
 
-    public String getParameter(String key) {
-        if (parsedQuery.containsKey(key)) {
-            return parsedQuery.get(key);
-        }
-        return null;
+    public Optional<String> getParameter(String key) {
+        return Optional.ofNullable(parsedQuery.get(key));
     }
 }

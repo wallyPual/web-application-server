@@ -10,19 +10,13 @@ import db.DataBase;
 import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import util.HttpRequestUtils;
-import util.IOUtils;
 
 public class RequestHandler extends Thread {
     private Socket connection;
     private byte[] body;
     private User newUser;
-    private String method;
-    private String url;
-    private Map<String, String> headers = new HashMap<>();
     private Boolean logined = false;
     private String contentType;
-
 
 
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -38,27 +32,13 @@ public class RequestHandler extends Thread {
 
         try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
             DataOutputStream dos = new DataOutputStream(out);
-            BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
+            HttpRequest request = new HttpRequest(in);
 
-            String line = br.readLine();
+            this.logined = isLoggedIn(request.getHeader("Cookie").orElse(""));
+            this.contentType = getContentType(request.getPath());
 
-            if (line == null) return;
-
-            String[] firstLine = line.split(" ");
-
-            method = firstLine[0];
-            url = firstLine[1];
-
-            while (!"".equals((line = br.readLine()))) {
-                String[] tokens = line.split(": ");
-                if (tokens.length == 2) headers.put(tokens[0], tokens[1]);
-            }
-
-            logined = isLoggedIn();
-            contentType = getContentType();
-
-            if (method.equals("GET")) {
-                switch (url) {
+            if (request.getMethods().equals("GET")) {
+                switch (request.getPath()) {
                     case "/user/login.html":
                         // 로그인 한 경우 홈으로 보냄
                         if (logined) {
@@ -66,7 +46,7 @@ public class RequestHandler extends Thread {
                             response302Header(dos, "/index.html");
                             return;
                         }
-                        setResBody(url);
+                        setResBody(request.getPath());
                         response200Header(dos, body.length);
                         responseBody(dos, body);
                         break;
@@ -78,7 +58,7 @@ public class RequestHandler extends Thread {
                         StringBuilder sb = new StringBuilder();
 
                         for (Iterator it = users; it.hasNext(); ) {
-                            User user = (User)it.next();
+                            User user = (User) it.next();
                             sb.append("<div>" + user.getUserId() + "</div>");
                         }
 
@@ -87,25 +67,27 @@ public class RequestHandler extends Thread {
                         responseBody(dos, html);
                         break;
                     default:
-                        setResBody(url);
+                        setResBody(request.getPath());
                         response200Header(dos, body.length);
                         responseBody(dos, body);
                 }
             }
-            if (method.equals("POST")) {
-                switch (url) {
+            if (request.getMethods().equals("POST")) {
+                switch (request.getPath()) {
                     case "/user/create":
-                        Map<String, String> parsed = HttpRequestUtils.parseQueryString(IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length"))));
-                        newUser = new User(parsed.get("userId"), parsed.get("password"), parsed.get("name"), parsed.get("email"));
+                        newUser = new User(
+                                request.getParameter("userId").orElse(""),
+                                request.getParameter("password").orElse(""),
+                                request.getParameter("name").orElse(""),
+                                request.getParameter("email").orElse(""));
                         DataBase.addUser(newUser);
                         log.info("회원가입 완료");
                         response302Header(dos, "/index.html");
                         break;
                     case "/user/login":
-                        Map<String, String> loginInfo = HttpRequestUtils.parseQueryString(IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length"))));
-                        User findDBUser = DataBase.findUserById(loginInfo.get("userId"));
+                        User findDBUser = DataBase.findUserById(request.getParameter("userId").orElse(""));
                         log.debug("findDBUser: {}", findDBUser);
-                        if (findDBUser == null || !findDBUser.getPassword().equals(loginInfo.get("password"))) {
+                        if (findDBUser == null || !findDBUser.getPassword().equals(request.getParameter("password"))) {
                             reponseLoginHeader(dos, false);
                             return;
                         }
@@ -119,21 +101,18 @@ public class RequestHandler extends Thread {
         }
     }
 
-    private String getContentType() {
-        if (url.endsWith(".css")) {
+    private String getContentType(String path) {
+        if (path.endsWith(".css")) {
             return "text/css";
         }
-        if (url.endsWith(".js")) {
+        if (path.endsWith(".js")) {
             return "text/javascript";
         }
         return "text/html";
     }
 
-    private Boolean isLoggedIn() {
-        if (headers.get("Cookie") != null) {
-            return Boolean.parseBoolean(util.HttpRequestUtils.parseCookies(headers.get("Cookie")).get("logined"));
-        }
-        return false;
+    private Boolean isLoggedIn(String Cookie) {
+        return Boolean.parseBoolean(util.HttpRequestUtils.parseCookies(Cookie).get("logined"));
     }
 
     private void setResBody(String path) throws IOException {
@@ -159,7 +138,9 @@ public class RequestHandler extends Thread {
         } catch (IOException e) {
             log.error(e.getMessage());
         }
-    };
+    }
+
+    ;
 
     private void reponseLoginHeader(DataOutputStream dos, Boolean isLogin) {
         try {
