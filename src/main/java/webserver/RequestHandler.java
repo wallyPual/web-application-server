@@ -17,6 +17,8 @@ public class RequestHandler extends Thread {
     private User newUser;
     private Boolean logined = false;
     private String contentType;
+    private String path;
+    private String methods;
 
 
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -34,11 +36,13 @@ public class RequestHandler extends Thread {
             DataOutputStream dos = new DataOutputStream(out);
             HttpRequest request = new HttpRequest(in);
 
-            this.logined = isLoggedIn(request.getHeader("Cookie").orElse(""));
+            this.logined = isLoggedIn(request.getHeader("Cookie"));
             this.contentType = getContentType(request.getPath());
+            this.path = request.getPath();
+            this.methods = request.getMethods();
 
-            if (request.getMethods().equals("GET")) {
-                switch (request.getPath()) {
+            if (methods.equals("GET")) {
+                switch (path) {
                     case "/user/login.html":
                         // 로그인 한 경우 홈으로 보냄
                         if (logined) {
@@ -71,22 +75,20 @@ public class RequestHandler extends Thread {
                         response200Header(dos, body.length);
                         responseBody(dos, body);
                 }
-            }
-            if (request.getMethods().equals("POST")) {
-                switch (request.getPath()) {
+            } else if (methods.equals("POST")) {
+                switch (path) {
                     case "/user/create":
                         newUser = new User(
-                                request.getParameter("userId").orElse(""),
-                                request.getParameter("password").orElse(""),
-                                request.getParameter("name").orElse(""),
-                                request.getParameter("email").orElse(""));
+                                request.getParameter("userId"),
+                                request.getParameter("password"),
+                                request.getParameter("name"),
+                                request.getParameter("email"));
                         DataBase.addUser(newUser);
                         log.info("회원가입 완료");
                         response302Header(dos, "/index.html");
                         break;
                     case "/user/login":
-                        User findDBUser = DataBase.findUserById(request.getParameter("userId").orElse(""));
-                        log.debug("findDBUser: {}", findDBUser);
+                        User findDBUser = DataBase.findUserById(request.getParameter("userId"));
                         if (findDBUser == null || !findDBUser.getPassword().equals(request.getParameter("password"))) {
                             reponseLoginHeader(dos, false);
                             return;
@@ -96,7 +98,7 @@ public class RequestHandler extends Thread {
                         break;
                 }
             }
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             log.error(e.getMessage());
         }
     }
