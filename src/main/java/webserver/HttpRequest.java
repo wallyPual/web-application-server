@@ -6,7 +6,6 @@ import util.IOUtils;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 public class HttpRequest {
     private Map<String, String> params;
@@ -27,9 +26,10 @@ public class HttpRequest {
 
         if ("POST".equals(getMethods())) {
             params = HttpRequestUtils.parseQueryString(IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length"))));
-        } else {
-            params = requestLine.getParameter();
+            return;
         }
+
+        params = requestLine.getParameter();
     }
 
     public String getMethods() {
@@ -40,7 +40,9 @@ public class HttpRequest {
         return requestLine.getPath();
     }
 
-    public String getHeader(String key) {return headers.get(key);}
+    public String getHeader(String key) {
+        return headers.get(key);
+    }
 
     public String getParameter(String key) {
         return params.get(key);
